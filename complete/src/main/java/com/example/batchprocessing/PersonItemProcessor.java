@@ -11,12 +11,14 @@ public class PersonItemProcessor implements ItemProcessor<Person, Person> {
 
 	@Override
 	public Person process(final Person person) {
+		System.out.println("process");
 		final String firstName = person.firstName().toUpperCase();
 		final String lastName = person.lastName().toUpperCase();
 
-		final Person transformedPerson = new Person(firstName, lastName);
+		// 새로운 Person 객체를 생성할 때는 record 클래스의 생성자를 사용합니다.
+		final Person transformedPerson = new Person(firstName, lastName, person.gender(), person.married(), person.age());
 
-		log.info("Converting (" + person + ") into (" + transformedPerson + ")");
+		log.info("대문자변환중 (" + person + ") -> (" + transformedPerson + ")");
 
 		return transformedPerson;
 	}
