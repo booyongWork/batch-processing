@@ -34,10 +34,10 @@ public class BatchConfiguration {
 		System.out.println("reader 실행");
 		return new FlatFileItemReaderBuilder<Person>() // 객체 생성되고 반환
 				.name("personItemReader") //빈의 이름을 "personItemReader"로 설정
-				.resource(new ClassPathResource("sample-data.csv")) //sample-data.csv"라는 이름의 파일을 Classpath에서 읽음
+				.resource(new ClassPathResource("sample-data2.csv")) //sample-data.csv"라는 이름의 파일을 Classpath에서 읽음
 				.delimited() // ,를 구분자로 구분된 파일 형식을 가정
 				.delimiter(",")
-				.names("firstName", "lastName", "gender", "married", "age") //SV 파일의 각 열의 이름을 지정하여 Person 객체와 매핑
+				.names("firstName", "lastName", "gender", "married", "age", "address") //SV 파일의 각 열의 이름을 지정하여 Person 객체와 매핑
 				.targetType(Person.class) // 읽은 데이터를 Person 객체로 변환
 				.build(); //설정한 정보를 바탕으로 FlatFileItemReader 객체를 생성
 	}
@@ -55,7 +55,7 @@ public class BatchConfiguration {
 	public JdbcBatchItemWriter<Person> writer(DataSource dataSource) {
 		System.out.println("writer 실행");
 		return new JdbcBatchItemWriterBuilder<Person>()
-				.sql("INSERT INTO people (first_name, last_name, gender, married, age) VALUES (:firstName, :lastName, :gender, :married, :age)")
+				.sql("INSERT INTO people (first_name, last_name, gender, married, age, address) VALUES (:firstName, :lastName, :gender, :married, :age, :address)")
 				.dataSource(dataSource)
 				.beanMapped()
 				.build();

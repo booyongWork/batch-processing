@@ -16,7 +16,7 @@ public class PersonItemProcessor implements ItemProcessor<Person, Person> {
 		final String lastName = person.lastName().toUpperCase();
 
 		// 새로운 Person 객체를 생성할 때는 record 클래스의 생성자를 사용합니다.
-		final Person transformedPerson = new Person(firstName, lastName, person.gender(), person.married(), person.age());
+		final Person transformedPerson = new Person(firstName, lastName, person.gender(), person.married(), person.age(), person.address());
 
 		log.info("대문자변환중 (" + person + ") -> (" + transformedPerson + ")");
 

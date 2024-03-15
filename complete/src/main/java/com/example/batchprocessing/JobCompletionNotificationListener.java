@@ -8,6 +8,9 @@ import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
+
 //NOTE.
 // 작업이 완료되면 피드백을 제공하기 위해 JobCompletionNotificationListener 작성
 // afterJob 메서드는 Spring Batch의 JobExecutionListener 인터페이스의 일부다.
@@ -43,6 +46,27 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 
 		if(jobExecution.getStatus() == BatchStatus.COMPLETED) {
 			// 배치 작업이 완료된 후 실행되는 메서드입니다.
+
+
+			// CSV 파일에서 주소 정보를 추출하여 Address 객체를 생성하고 데이터베이스에 삽입합니다.
+			List<Map<String, Object>> personAddresses = jdbcTemplate.queryForList("SELECT person_id,address FROM people");
+
+			for (Map<String, Object> personAddress : personAddresses) {
+				long person_Id = (Long) personAddress.get("person_id");
+				String fullAddress = (String) personAddress.get("address");
+				String[] addressParts = fullAddress.split(" "); // 예시: "서울특별시 강남구 역삼동 123번지"
+				String city = addressParts[0].trim();
+				String state = addressParts[1].trim();
+				String street = addressParts[2].trim();
+
+				// Address 객체 생성
+				Address address = new Address(street, city, state);
+
+				// Address 객체를 데이터베이스에 삽입
+				jdbcTemplate.update("INSERT INTO address (street, city, state, person_Id) VALUES (?, ?, ?, ?)",
+						address.street(), address.city(), address.state(), person_Id);
+			}
+
 			int totalPeople = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people", Integer.class);
 			int maleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people WHERE gender = 'M'", Integer.class);
 			int femaleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people WHERE gender = 'F'", Integer.class);
@@ -78,5 +102,6 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 			log.info("50대 인원 퍼센트: {}%", fiftiesPercentage);
 			log.info("=======================================");
 		}
-	}
+
+		}
 }
