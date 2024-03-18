@@ -37,7 +37,7 @@ public class BatchConfiguration {
 				.resource(new ClassPathResource("sample-data2.csv")) //sample-data.csv"라는 이름의 파일을 Classpath에서 읽음
 				.delimited() // ,를 구분자로 구분된 파일 형식을 가정
 				.delimiter(",")
-				.names("firstName", "lastName", "gender", "married", "age", "address") //SV 파일의 각 열의 이름을 지정하여 Person 객체와 매핑
+				.names("firstName", "lastName", "gender", "married", "age", "address") //CSV 파일의 각 열의 이름을 지정하여 Person 객체와 매핑
 				.targetType(Person.class) // 읽은 데이터를 Person 객체로 변환
 				.build(); //설정한 정보를 바탕으로 FlatFileItemReader 객체를 생성
 	}
@@ -88,9 +88,12 @@ public class BatchConfiguration {
 	@Bean
 	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener) {
 		System.out.println("importUserJob 실행");
-		return new JobBuilder("importUserJob", jobRepository)
+		Job job = new JobBuilder("importUserJob", jobRepository)
 				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
 				.start(step1) // 배치작업 시작
 				.build();
+		// Job 이름을 JobCompletionNotificationListener에 전달
+		((JobCompletionNotificationListener) listener).setJobName(job.getName());
+		return job;
 	}
 }

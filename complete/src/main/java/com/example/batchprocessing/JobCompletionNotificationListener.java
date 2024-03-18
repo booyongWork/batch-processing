@@ -20,6 +20,7 @@ import java.util.Map;
 public class JobCompletionNotificationListener implements JobExecutionListener {
 
 	private static final Logger log = LoggerFactory.getLogger(JobCompletionNotificationListener.class);
+	private String jobName; // Job 이름을 저장할 변수 추가
 
 	//NOTE. JdbcTemplate - 은 스프링 프레임워크에서 제공하는 JDBC 추상화 계층
 	// 이를 사용하면 JDBC를 사용하여 데이터베이스에 액세스하는 데 필요한 일반적인 작업을 더 간단하게 처리
@@ -30,10 +31,15 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 
+	// importUserJob() 메서드에서 Job 이름을 받아와서 저장
+	public void setJobName(String jobName) {
+		this.jobName = jobName;
+	}
+
 	@Override
 	public void afterJob(JobExecution jobExecution) {
 		System.out.println("afterJob 실행");
-/* NOTE.TEST로 Insert 성공 했는지 확인했던 select 문 */
+		/* NOTE.TEST로 Insert 성공 했는지 확인했던 select 문 */
 // DataClassRowMapper는 각 행의 열을 Person 객체의 필드에 매핑. 따라서 데이터베이스에서 가져온 결과 집합의 각 행이 Person 객체로 변환
 
 //		if(jobExecution.getStatus() == BatchStatus.COMPLETED) {
@@ -88,6 +94,10 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 			double fortiesPercentage = jdbcTemplate.queryForObject(fortiesPercentageQuery, Double.class);
 			double fiftiesPercentage = jdbcTemplate.queryForObject(fiftiesPercentageQuery, Double.class);
 
+			// statics 테이블에 값 삽입
+			jdbcTemplate.update("INSERT INTO statics (job_nm, total_people, male_count, female_count, married_count, unmarried_count, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					jobName, totalPeople, maleCount, femaleCount, marriedCount, unmarriedCount, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage);
+
 			log.info("=======통계==============================");
 			log.info("전체 인원 수: {}", totalPeople);
 			log.info("남성 수: {}", maleCount);
@@ -101,6 +111,10 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 			log.info("40대 인원 퍼센트: {}%", fortiesPercentage);
 			log.info("50대 인원 퍼센트: {}%", fiftiesPercentage);
 			log.info("=======================================");
+
+		}else if (jobExecution.getStatus() == BatchStatus.FAILED) {
+			// 에러 발생 시 처리할 내용을 여기에 추가할 수 있습니다.
+			log.error("importJob 실패로 -> afterJob 실행실패");
 		}
 
 		}
