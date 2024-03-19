@@ -93,11 +93,11 @@ public class BatchConfiguration {
 	//여기서 User를 불러오는 job을 실행
 	@Bean
 	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener, Step addressStep) {
-		System.out.println("importUserJob 실행");
+		System.out.println("importUserJob 준비");
 		Job job = new JobBuilder("importUserJob", jobRepository)
 				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
 				.start(step1) // 배치작업 시작
-				.next(addressStep)
+//				.next(addressStep)
 				.build();
 		// Job 이름을 JobCompletionNotificationListener에 전달
 		((JobCompletionNotificationListener) listener).setJobName(job.getName());
@@ -146,7 +146,7 @@ public class BatchConfiguration {
 	@Bean
 	public Job addressInsertJob(JobRepository jobRepository, Step addressStep,
 			JobCompletionNotificationListener listener) {
-		System.out.println("addressInsertJob 실행");
+		System.out.println("addressInsertJob 준비");
 		return new JobBuilder("addressInsertJob", jobRepository)
 				.listener(listener)
 				.start(addressStep)

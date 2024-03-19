@@ -30,7 +30,7 @@ public class AddressItemProcessor implements ItemProcessor<Person, Address> {
                 new Object[]{person.firstName(), person.lastName()});
 
         if (!personAddresses.isEmpty()) {
-            personId = (Long) personAddresses.get(0).get("person_id");
+            personId = (Long) personAddresses.get(0).get("person_id111");
         }
 
         // Address 객체 생성 및 반환
