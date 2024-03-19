@@ -39,39 +39,28 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 	@Override
 	public void afterJob(JobExecution jobExecution) {
 		System.out.println("afterJob 실행");
-		/* NOTE.TEST로 Insert 성공 했는지 확인했던 select 문 */
-// DataClassRowMapper는 각 행의 열을 Person 객체의 필드에 매핑. 따라서 데이터베이스에서 가져온 결과 집합의 각 행이 Person 객체로 변환
-
-//		if(jobExecution.getStatus() == BatchStatus.COMPLETED) {
-//			log.info("!!! JOB 완료! 결과확인");
-//
-//			jdbcTemplate
-//					.query("SELECT first_name, last_name, gender, married, age FROM people", new DataClassRowMapper<>(Person.class))
-//					.forEach(person -> log.info("데이터베이스에서 <{{}}> 찾았습니다.", person));
-//		}
 
 		if(jobExecution.getStatus() == BatchStatus.COMPLETED) {
 			// 배치 작업이 완료된 후 실행되는 메서드입니다.
 
-
 			// CSV 파일에서 주소 정보를 추출하여 Address 객체를 생성하고 데이터베이스에 삽입합니다.
-			List<Map<String, Object>> personAddresses = jdbcTemplate.queryForList("SELECT person_id,address FROM people");
-
-			for (Map<String, Object> personAddress : personAddresses) {
-				long person_Id = (Long) personAddress.get("person_id");
-				String fullAddress = (String) personAddress.get("address");
-				String[] addressParts = fullAddress.split(" "); // 예시: "서울특별시 강남구 역삼동 123번지"
-				String city = addressParts[0].trim();
-				String state = addressParts[1].trim();
-				String street = addressParts[2].trim();
-
-				// Address 객체 생성
-				Address address = new Address(street, city, state);
-
-				// Address 객체를 데이터베이스에 삽입
-				jdbcTemplate.update("INSERT INTO address (street, city, state, person_Id) VALUES (?, ?, ?, ?)",
-						address.street(), address.city(), address.state(), person_Id);
-			}
+//			List<Map<String, Object>> personAddresses = jdbcTemplate.queryForList("SELECT person_id,address FROM people");
+//
+//			for (Map<String, Object> personAddress : personAddresses) {
+//				long person_Id = (Long) personAddress.get("person_id");
+//				String fullAddress = (String) personAddress.get("address");
+//				String[] addressParts = fullAddress.split(" "); // 예시: "서울특별시 강남구 역삼동 123번지"
+//				String city = addressParts[0].trim();
+//				String state = addressParts[1].trim();
+//				String street = addressParts[2].trim();
+//
+//				// Address 객체 생성
+//				Address address = new Address(street, city, state);
+//
+//				// Address 객체를 데이터베이스에 삽입
+//				jdbcTemplate.update("INSERT INTO address (street, city, state, person_Id) VALUES (?, ?, ?, ?)",
+//						address.street(), address.city(), address.state(), person_Id);
+//			}
 
 			int totalPeople = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people", Integer.class);
 			int maleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people WHERE gender = 'M'", Integer.class);
@@ -80,11 +69,12 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 			int unmarriedCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people WHERE married = 0", Integer.class);
 
 			// 각 연령대별 인원의 백분율을 계산하는 쿼리
-			String teenagePercentageQuery = "SELECT ROUND((COUNT(CASE WHEN age BETWEEN 10 AND 19 THEN 1 END) / COUNT(*)) * 100, 2) AS teenage_percentage FROM people";
-			String twentiesPercentageQuery = "SELECT ROUND((COUNT(CASE WHEN age BETWEEN 20 AND 29 THEN 1 END) / COUNT(*)) * 100, 2) AS twenties_percentage FROM people";
-			String thirtiesPercentageQuery = "SELECT ROUND((COUNT(CASE WHEN age BETWEEN 30 AND 39 THEN 1 END) / COUNT(*)) * 100, 2) AS thirties_percentage FROM people";
-			String fortiesPercentageQuery = "SELECT ROUND((COUNT(CASE WHEN age BETWEEN 40 AND 49 THEN 1 END) / COUNT(*)) * 100, 2) AS forties_percentage FROM people";
-			String fiftiesPercentageQuery = "SELECT ROUND((COUNT(CASE WHEN age BETWEEN 50 AND 59 THEN 1 END) / COUNT(*)) * 100, 2) AS fifties_percentage FROM people";
+			// NOTE. COUNT(*)을 사용안하고 INDEX를 생성해서 사용하려고 했는데 퍼센트를 구할때는 COUNT를 사용하지 않고는 힘듬
+			String teenagePercentageQuery = "SELECT ROUND((COUNT(*) / (SELECT COUNT(*) FROM people)) * 100, 2) AS teenage_percentage FROM people WHERE age >= 10 AND age < 20";
+			String twentiesPercentageQuery = "SELECT ROUND((COUNT(*) / (SELECT COUNT(*) FROM people)) * 100, 2) AS teenage_percentage FROM people WHERE age >= 20 AND age < 30";
+			String thirtiesPercentageQuery = "SELECT ROUND((COUNT(*) / (SELECT COUNT(*) FROM people)) * 100, 2) AS teenage_percentage FROM people WHERE age >= 30 AND age < 40";
+			String fortiesPercentageQuery = "SELECT ROUND((COUNT(*) / (SELECT COUNT(*) FROM people)) * 100, 2) AS teenage_percentage FROM people WHERE age >= 40 AND age < 50";
+			String fiftiesPercentageQuery = "SELECT ROUND((COUNT(*) / (SELECT COUNT(*) FROM people)) * 100, 2) AS teenage_percentage FROM people WHERE age >= 50 AND age < 60";
 
 			// 각 연령대별 인원의 백분율을 조회하여 결과를 가져옴
 			// NOTE. queryForObject - 데이터베이스에서 쿼리를 실행하여 단일 결과를 가져오는 데 사용
@@ -117,5 +107,5 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 			log.error("importJob 실패로 -> afterJob 실행실패");
 		}
 
-		}
+	}
 }

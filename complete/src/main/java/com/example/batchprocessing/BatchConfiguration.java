@@ -5,6 +5,10 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
@@ -12,7 +16,9 @@ import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+
 import javax.sql.DataSource;
 
 //NOTE.
@@ -86,14 +92,64 @@ public class BatchConfiguration {
 
 	//여기서 User를 불러오는 job을 실행
 	@Bean
-	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener) {
+	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener, Step addressStep) {
 		System.out.println("importUserJob 실행");
 		Job job = new JobBuilder("importUserJob", jobRepository)
 				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
 				.start(step1) // 배치작업 시작
+				.next(addressStep)
 				.build();
 		// Job 이름을 JobCompletionNotificationListener에 전달
 		((JobCompletionNotificationListener) listener).setJobName(job.getName());
 		return job;
+	}
+
+	@Bean
+	public FlatFileItemReader<Person> addressReader() {
+		return new FlatFileItemReaderBuilder<Person>()
+				.name("addressReader")
+				.resource(new ClassPathResource("sample-data2.csv"))
+				.delimited()
+				.delimiter(",")
+				.names("firstName", "lastName", "gender", "married", "age", "address")
+				.targetType(Person.class)
+				.build();
+	}
+
+	@Bean
+	public AddressItemProcessor addressProcessor(JdbcTemplate jdbcTemplate) {
+		return new AddressItemProcessor(jdbcTemplate);
+	}
+
+	@Bean
+	public JdbcBatchItemWriter<Address> addressWriter(DataSource dataSource) {
+		return new JdbcBatchItemWriterBuilder<Address>()
+				.itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
+				.sql("INSERT INTO address (street, city, state, person_Id) VALUES (:street, :city, :state ,:personId)")
+				.dataSource(dataSource)
+				.build();
+	}
+
+	@Bean
+	public Step addressStep(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
+							ItemReader<Person> addressReader, ItemProcessor<Person, Address> addressProcessor,
+							ItemWriter<Address> addressWriter) {
+		System.out.println("addressStep 준비");
+		return new StepBuilder("addressStep", jobRepository)
+				.<Person, Address>chunk(1,transactionManager)
+				.reader(addressReader)
+				.processor(addressProcessor)
+				.writer(addressWriter)
+				.build();
+	}
+
+	@Bean
+	public Job addressInsertJob(JobRepository jobRepository, Step addressStep,
+			JobCompletionNotificationListener listener) {
+		System.out.println("addressInsertJob 실행");
+		return new JobBuilder("addressInsertJob", jobRepository)
+				.listener(listener)
+				.start(addressStep)
+				.build();
 	}
 }
