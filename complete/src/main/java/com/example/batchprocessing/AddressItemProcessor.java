@@ -15,7 +15,7 @@ public class AddressItemProcessor implements ItemProcessor<Person, Address> {
 
     @Override
     public Address process(final Person person) {
-        System.out.println("Address process");
+        System.out.println("두번째 배치 Address Insert process 진행중");
 
         // Address 정보 추출
         String fullAddress = person.address();

@@ -69,6 +69,7 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 			int unmarriedCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people WHERE married = 0", Integer.class);
 
 			// 각 연령대별 인원의 백분율을 계산하는 쿼리
+			// CASE , BETWEEN 제거 쿼리
 			// NOTE. COUNT(*)을 사용안하고 INDEX를 생성해서 사용하려고 했는데 퍼센트를 구할때는 COUNT를 사용하지 않고는 힘듬
 			String teenagePercentageQuery = "SELECT ROUND((COUNT(*) / (SELECT COUNT(*) FROM people)) * 100, 2) AS teenage_percentage FROM people WHERE age >= 10 AND age < 20";
 			String twentiesPercentageQuery = "SELECT ROUND((COUNT(*) / (SELECT COUNT(*) FROM people)) * 100, 2) AS teenage_percentage FROM people WHERE age >= 20 AND age < 30";
