@@ -10,8 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 
 //@SpringBootApplication
 //@EnableScheduling // 스케줄러를 활성화
@@ -92,22 +90,21 @@ public class BatchProcessingApplication {
 		// importUserJob 실행
 		JobExecution importUserJobExecution = jobLauncher.run(importUserJob, new JobParametersBuilder().toJobParameters());
 
-		// addressInsertJob 실행
-		JobExecution addressInsertJobExecution = jobLauncher.run(addressInsertJob, new JobParametersBuilder().toJobParameters());
-
 		// importUserJob이 완료되었는지 확인하고 로그를 출력
 		if (importUserJobExecution.getStatus() == BatchStatus.COMPLETED) {
 			System.out.println("importUserJob 배치 작업이 완료되었습니다.");
+
+			// addressInsertJob 실행
+			JobExecution addressInsertJobExecution = jobLauncher.run(addressInsertJob, new JobParametersBuilder().toJobParameters());
+
+			// addressInsertJob이 완료되었는지 확인하고 로그를 출력
+			if (addressInsertJobExecution.getStatus() == BatchStatus.COMPLETED) {
+				System.out.println("addressInsertJob 배치 작업이 완료되었습니다.");
+			} else {
+				System.out.println("addressInsertJob 배치 작업이 실패하였습니다.");
+			}
 		} else {
 			System.out.println("importUserJob 배치 작업이 실패하였습니다.");
 		}
-
-		// addressInsertJob이 완료되었는지 확인하고 로그를 출력
-		if (addressInsertJobExecution.getStatus() == BatchStatus.COMPLETED) {
-			System.out.println("addressInsertJob 배치 작업이 완료되었습니다.");
-		} else {
-			System.out.println("addressInsertJob 배치 작업이 실패하였습니다.");
-		}
-
 	}
 }

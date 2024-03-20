@@ -46,6 +46,32 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 			// 배치 작업이 완료된 후 실행되는 메서드입니다.
 			String currentJobName = jobExecution.getJobInstance().getJobName();
 			if ("importUserJob".equals(currentJobName)) {
+				List<Map<String, Object>> personAges = jdbcTemplate.queryForList("SELECT person_id, age FROM people");
+
+				for (Map<String, Object> personAge : personAges) {
+					long personId = (Long) personAge.get("person_id");
+					int age = (Integer) personAge.get("age");
+
+					// 나이 그룹 계산
+					String ageGroup;
+					if (age < 20) {
+						ageGroup = "Teens";
+					} else if (age < 30) {
+						ageGroup = "Twenties";
+					} else if (age < 40) {
+						ageGroup = "Thirties";
+					} else if (age < 50) {
+						ageGroup = "Forties";
+					} else if (age < 60) {
+						ageGroup = "Fifties";
+					} else {
+						ageGroup = "Sixties";
+					}
+					// age 테이블에 해당 정보 삽입
+					jdbcTemplate.update("INSERT INTO age (person_id, age, ageGroup) VALUES (?, ?, ?)", personId, age, ageGroup);
+				}
+
+
 				int totalPeople = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people", Integer.class);
 				int maleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people WHERE gender = 'M'", Integer.class);
 				int femaleCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM people WHERE gender = 'F'", Integer.class);
