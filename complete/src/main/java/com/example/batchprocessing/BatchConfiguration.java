@@ -31,7 +31,6 @@ import javax.sql.DataSource;
 
 @Configuration
 public class BatchConfiguration {
-
 	//NOTE. @Bean - 스프링 프레임워크에서 빈(Bean)으로 관리될 객체를 선언하는 데 사용되는 어노테이션
 	// 특정 형식의 파일(여기서는 CSV 파일)을 읽어들이는 빈
 	// reader() 함수에서 csv 파일에서 데이터를 읽어와서 객체안에 넣어놓는다.
@@ -145,9 +144,12 @@ public class BatchConfiguration {
 	public Job staticsInsertJob(JobRepository jobRepository, Step staticsStep,
 			JobCompletionNotificationListener listener) {
 		System.out.println("staticsInsertJob 준비");
-		return new JobBuilder("staticsInsertJob", jobRepository)
+		Job job = new JobBuilder("staticsInsertJob", jobRepository)
 				.listener(listener)
 				.start(staticsStep)
 				.build();
+		// Job 이름을 JobCompletionNotificationListener에 전달
+		((JobCompletionNotificationListener) listener).setJobName(job.getName());
+		return job;
 	}
 }
