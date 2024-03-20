@@ -92,22 +92,19 @@ public class BatchConfiguration {
 
 	//여기서 User를 불러오는 job을 실행
 	@Bean
-	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener, Step addressStep) {
+	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener) {
 		System.out.println("importUserJob 준비");
 		Job job = new JobBuilder("importUserJob", jobRepository)
 				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
 				.start(step1) // 배치작업 시작
-//				.next(addressStep)
 				.build();
-		// Job 이름을 JobCompletionNotificationListener에 전달
-		((JobCompletionNotificationListener) listener).setJobName(job.getName());
 		return job;
 	}
 
 	@Bean
-	public FlatFileItemReader<Person> addressReader() {
+	public FlatFileItemReader<Person> staticsReader() {
 		return new FlatFileItemReaderBuilder<Person>()
-				.name("addressReader")
+				.name("staticsReader")
 				.resource(new ClassPathResource("sample-data2.csv"))
 				.delimited()
 				.delimiter(",")
@@ -117,39 +114,40 @@ public class BatchConfiguration {
 	}
 
 	@Bean
-	public AddressItemProcessor addressProcessor(JdbcTemplate jdbcTemplate) {
-		return new AddressItemProcessor(jdbcTemplate);
+	public StaticstemProcessor staticsProcessor(JdbcTemplate jdbcTemplate) {
+		return new StaticstemProcessor(jdbcTemplate);
 	}
 
 	@Bean
-	public JdbcBatchItemWriter<Address> addressWriter(DataSource dataSource) {
-		return new JdbcBatchItemWriterBuilder<Address>()
+	public JdbcBatchItemWriter<Statics> staticsWriter(DataSource dataSource) {
+		return new JdbcBatchItemWriterBuilder<Statics>()
 				.itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-				.sql("INSERT INTO address (street, city, state, person_Id) VALUES (:street, :city, :state ,:personId)")
+				.sql("INSERT INTO statics (job_nm, total_people, male_count, female_count, married_count, unmarried_count, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage)\n" +
+						"VALUES (:jobNm, :totalPeople, :maleCount, :femaleCount, :marriedCount, :unmarriedCount, :teenagePercentage, :twentiesPercentage, :thirtiesPercentage, :fortiesPercentage, :fiftiesPercentage)")
 				.dataSource(dataSource)
 				.build();
 	}
 
 	@Bean
-	public Step addressStep(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
-							ItemReader<Person> addressReader, ItemProcessor<Person, Address> addressProcessor,
-							ItemWriter<Address> addressWriter) {
-		System.out.println("addressStep 준비");
-		return new StepBuilder("addressStep", jobRepository)
-				.<Person, Address>chunk(1,transactionManager)
-				.reader(addressReader)
-				.processor(addressProcessor)
-				.writer(addressWriter)
+	public Step staticsStep(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
+							ItemReader<Person> staticsReader, ItemProcessor<Person, Statics> staticsProcessor,
+							ItemWriter<Statics> staticsWriter) {
+		System.out.println("staticsStep 준비");
+		return new StepBuilder("staticsStep", jobRepository)
+				.<Person, Statics>chunk(1,transactionManager)
+				.reader(staticsReader)
+				.processor(staticsProcessor)
+				.writer(staticsWriter)
 				.build();
 	}
 
 	@Bean
-	public Job addressInsertJob(JobRepository jobRepository, Step addressStep,
+	public Job staticsInsertJob(JobRepository jobRepository, Step staticsStep,
 			JobCompletionNotificationListener listener) {
-		System.out.println("addressInsertJob 준비");
-		return new JobBuilder("addressInsertJob", jobRepository)
+		System.out.println("staticsInsertJob 준비");
+		return new JobBuilder("staticsInsertJob", jobRepository)
 				.listener(listener)
-				.start(addressStep)
+				.start(staticsStep)
 				.build();
 	}
 }
