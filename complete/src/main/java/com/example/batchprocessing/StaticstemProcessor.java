@@ -14,7 +14,7 @@ public class StaticstemProcessor implements ItemProcessor<Person, Statics> {
 
     @Override
     public Statics process(final Person person) {
-        System.out.println("process");
+//        System.out.println("process");
         return null;
     }
 }

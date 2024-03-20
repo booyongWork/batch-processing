@@ -51,14 +51,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 //		} else {
 //			System.out.println("importUserJob 배치 작업이 실패하였습니다.");
 //		}
-//
-//		// staticsInsertJob이 완료되었는지 확인하고 로그를 출력
-//		if (staticsInsertJobExecution.getStatus() == BatchStatus.COMPLETED) {
-//			System.out.println("staticsInsertJob 배치 작업이 완료되었습니다.");
-//		} else {
-//			System.out.println("staticsInsertJob 배치 작업이 실패하였습니다.");
-//		}
-//
 //	}
 //}
 
@@ -99,13 +91,5 @@ public class BatchProcessingApplication {
 		} else {
 			System.out.println("importUserJob 배치 작업이 실패하였습니다.");
 		}
-
-		// staticsInsertJob이 완료되었는지 확인하고 로그를 출력
-		if (staticsInsertJobExecution.getStatus() == BatchStatus.COMPLETED) {
-			System.out.println("staticsInsertJob 배치 작업이 완료되었습니다.");
-		} else {
-			System.out.println("staticsInsertJob 배치 작업이 실패하였습니다.");
-		}
-
 	}
 }
