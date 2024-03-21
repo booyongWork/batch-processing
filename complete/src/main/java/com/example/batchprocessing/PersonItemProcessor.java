@@ -11,7 +11,7 @@ public class PersonItemProcessor implements ItemProcessor<Person, Person> {
 
 	@Override
 	public Person process(final Person person) {
-		System.out.println("첫번째 배치 process 진행중");
+//		System.out.println("첫번째 배치 process 진행중");
 		final String firstName = person.firstName().toUpperCase();
 		final String lastName = person.lastName().toUpperCase();
 

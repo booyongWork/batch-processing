@@ -76,7 +76,7 @@ public class BatchConfiguration {
 	@Bean
 	public Step step1(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
 					  FlatFileItemReader<Person> reader, PersonItemProcessor processor, JdbcBatchItemWriter<Person> writer) {
-		System.out.println("Step1 준비");
+		System.out.println("importUserStep 준비");
 		return new StepBuilder("step1", jobRepository)
 				.<Person, Person>chunk(10, transactionManager)// 10개의 레코드씩 처리
 				.reader(reader)

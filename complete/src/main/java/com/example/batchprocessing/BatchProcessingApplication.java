@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 //@SpringBootApplication
 //@EnableScheduling // 스케줄러를 활성화
@@ -44,13 +46,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 //
 //		// staticsInsertJob 실행
 //		JobExecution staticsInsertJobExecution = jobLauncher.run(staticsInsertJob, new JobParametersBuilder().toJobParameters());
-//
-//		// importUserJob이 완료되었는지 확인하고 로그를 출력
-//		if (importUserJobExecution.getStatus() == BatchStatus.COMPLETED) {
-//			System.out.println("importUserJob 배치 작업이 완료되었습니다.");
-//		} else {
-//			System.out.println("importUserJob 배치 작업이 실패하였습니다.");
-//		}
 //	}
 //}
 
@@ -84,12 +79,5 @@ public class BatchProcessingApplication {
 
 		// staticsInsertJob 실행
 		JobExecution staticsInsertJobExecution = jobLauncher.run(staticsInsertJob, new JobParametersBuilder().toJobParameters());
-
-		// importUserJob이 완료되었는지 확인하고 로그를 출력
-		if (importUserJobExecution.getStatus() == BatchStatus.COMPLETED) {
-			System.out.println("importUserJob 배치 작업이 완료되었습니다.");
-		} else {
-			System.out.println("importUserJob 배치 작업이 실패하였습니다.");
-		}
 	}
 }
