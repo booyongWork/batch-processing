@@ -1,7 +1,6 @@
 package com.example.batchprocessing;
 
 import jakarta.annotation.PostConstruct;
-import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -34,7 +33,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 //	}
 //
 //
-//	@Scheduled(cron = "0 19 16 * * ?")
+//	@Scheduled(cron = "0 02 15 * * ?")
 //	public void runBatchJob() throws Exception {
 //		// 배치 작업 실행
 //		JobLauncher jobLauncher = context.getBean(JobLauncher.class);

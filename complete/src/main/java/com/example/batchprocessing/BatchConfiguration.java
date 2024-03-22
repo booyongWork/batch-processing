@@ -100,6 +100,18 @@ public class BatchConfiguration {
 		return job;
 	}
 
+	//importUserJob 실행도중에
+//	@Bean
+//	public Job importUserJob(JobRepository jobRepository, Step step1, Step staticsStep,
+//							 JobCompletionNotificationListener listener) {
+//		System.out.println("importUserJob 준비");
+//		return new JobBuilder("importUserJob", jobRepository)
+//				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
+//				.start(step1) // 배치작업 시작
+//				.next(staticsStep) // importUserJob 실행 이후 staticsStep 실행
+//				.build();
+//	}
+
 	@Bean
 	public FlatFileItemReader<Person> staticsReader() {
 		return new FlatFileItemReaderBuilder<Person>()

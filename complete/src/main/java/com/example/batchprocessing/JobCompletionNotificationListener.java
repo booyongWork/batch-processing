@@ -43,9 +43,9 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 	@Override
 	public void afterJob(JobExecution jobExecution) {
 		// 배치 작업이 완료된 후 실행되는 메서드입니다.
-		if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
-			String currentJobName = jobExecution.getJobInstance().getJobName();
+		String currentJobName = jobExecution.getJobInstance().getJobName();
 
+		if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
 			if ("importUserJob".equals(currentJobName)) {
 				System.out.println("첫번째 배치 process 진행중");
 				try {
@@ -126,8 +126,10 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 
 					// 각 연령대별 인원의 백분율을 계산하는 쿼리
 					// NOTE. 검색 속도로 풀스캔 X, CASE, BETWEEN 사용안함. age컬럼에 idx_age 만들어 놓음
-					String teenagePercentageQuery = "SELECT ROUND((SUM(sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
+					//전체 수에서 나누기 10대 수 한 후 에 100곱해서 퍼센트로 쿼리 조회
+					String teenagePercentageQuery = "SELECT ROUND(((sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
 							"FROM ( " +
+							// 10이상이면서 20미만 경우 1 최종합계를 구함
 							"    SELECT " +
 							"        COUNT(*) AS total_count, " +
 							"        SUM(IF(age >= 10 AND age < 20, 1, 0)) AS teenage_count " +
@@ -135,7 +137,7 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 							") AS sub " +
 							"GROUP BY sub.total_count;";
 
-					String twentiesPercentageQuery = "SELECT ROUND((SUM(sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
+					String twentiesPercentageQuery = "SELECT ROUND(((sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
 							"FROM ( " +
 							"    SELECT " +
 							"        COUNT(*) AS total_count, " +
@@ -144,7 +146,7 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 							") AS sub " +
 							"GROUP BY sub.total_count;";
 
-					String thirtiesPercentageQuery = "SELECT ROUND((SUM(sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
+					String thirtiesPercentageQuery = "SELECT ROUND(((sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
 							"FROM ( " +
 							"    SELECT " +
 							"        COUNT(*) AS total_count, " +
@@ -153,7 +155,7 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 							") AS sub " +
 							"GROUP BY sub.total_count;";
 
-					String fortiesPercentageQuery = "SELECT ROUND((SUM(sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
+					String fortiesPercentageQuery = "SELECT ROUND(((sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
 							"FROM ( " +
 							"    SELECT " +
 							"        COUNT(*) AS total_count, " +
@@ -162,7 +164,7 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 							") AS sub " +
 							"GROUP BY sub.total_count;";
 
-					String fiftiesPercentageQuery = "SELECT ROUND((SUM(sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
+					String fiftiesPercentageQuery = "SELECT ROUND(((sub.teenage_count) / sub.total_count) * 100, 2) AS teenage_percentage " +
 							"FROM ( " +
 							"    SELECT " +
 							"        COUNT(*) AS total_count, " +
@@ -201,6 +203,13 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 					System.out.println("staticsInsertJob 배치에 실패했습니다: " + e.getMessage());
 					e.printStackTrace();
 				}
+			}
+		}else{
+			if ("importUserJob".equals(currentJobName)) {
+				System.out.println("importUserJob 배치에 실패했습니다");
+			}else if("staticsInsertJob".equals(currentJobName)){
+				System.out.println("staticsInsertJob 배치에 실패했습니다");
+				jdbcTemplate.update("UPDATE batch_job_execution SET STATUS = 'FAILED' WHERE JOB_EXECUTION_ID = ?", jobExecution.getId());
 			}
 		}
 	}
