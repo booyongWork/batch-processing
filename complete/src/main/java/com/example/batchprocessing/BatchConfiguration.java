@@ -12,6 +12,7 @@ import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilde
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
@@ -104,6 +105,7 @@ public class BatchConfiguration {
 	// 작업 실행 상태, 작업 실행 이력, 단계 실행 상태, 중복 방지 정보 등의 내용이 있다.
 	// 스텝에서 불러온 파일을 가공하고 insert할꺼라는 걸 설정
 	@Bean
+	@Primary
 	public Step step1(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
 					  JdbcCursorItemReader<PersonDTO> reader, ItemProcessor<PersonDTO, TodayRegisteredUserDTO> processor, JdbcTemplate jdbcTemplate) {
 		System.out.println("Step1 준비");
@@ -113,10 +115,9 @@ public class BatchConfiguration {
 				.processor(processor) // Processor에서 Person을 TodayRegisteredUser로 변환
 				.writer(writer(jdbcTemplate.getDataSource())) // writer() 메서드를 호출하여 writer 사용
 				.transactionManager(transactionManager)
+				.allowStartIfComplete(true) // Step이 이미 완료되었어도 다시 시작할 수 있도록 설정
 				.build();
 	}
-
-
 
 	// NOTE. JobBuilder -  Spring Batch에서 Job을 생성하는 데 사용되는 빌더 클래스
 	//  이 클래스의 인스턴스를 생성하고 여러 설정 메서드를 사용하여 Job의 속성을 지정한 다음 build() 메서드를 호출하여 Job 객체를 생성
@@ -124,14 +125,70 @@ public class BatchConfiguration {
 
 	//여기서 User를 불러오는 job을 실행
 	@Bean
-	public Job importTodayUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener, Step addressStep) {
+	public Job importTodayUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener, Step step2) {
 		System.out.println("importTodayUserJob 실행");
 		Job job = new JobBuilder("importTodayUserJob", jobRepository)
 				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
 				.start(step1) // 배치작업 시작
 				.build();
 		// Job 이름을 JobCompletionNotificationListener에 전달
-		((JobCompletionNotificationListener) listener).setJobName(job.getName());
+//		((JobCompletionNotificationListener) listener).setJobName(job.getName());
 		return job;
 	}
+
+//	@Bean
+//	public JdbcCursorItemReader<TodayRegisteredUserDTO> staticsReader() {
+//		System.out.println("staticsReader 실행");
+//		JdbcCursorItemReader<TodayRegisteredUserDTO> reader = new JdbcCursorItemReader<>();
+//		reader.setDataSource(dataSource);
+//		reader.setSql("SELECT first_name, last_name, gender, married, age, address FROM today_reg_users");
+//		reader.setRowMapper(new BeanPropertyRowMapper<>(TodayRegisteredUserDTO.class));
+//		return reader;
+//	}
+//
+//	@Bean
+//	public ItemProcessor<TodayRegisteredUserDTO, StaticsDTO> staticsProcessor() {
+//		return new ItemProcessor<TodayRegisteredUserDTO, StaticsDTO>() {
+//			@Override
+//			public StaticsDTO process(final TodayRegisteredUserDTO todayRegisteredUser) {
+//				return null;
+//			}
+//		};
+//	}
+//
+//	@Bean
+//	public JdbcBatchItemWriter<StaticsDTO> staticsWriter(DataSource dataSource) {
+//		System.out.println("staticsWriter 실행");
+//		return new JdbcBatchItemWriterBuilder<StaticsDTO>()
+//				.sql("INSERT INTO statics (job_nm) VALUES (?)")
+//				.itemPreparedStatementSetter((item, ps) -> {
+//					// 변경된 값 설정
+//					ps.setString(1, "1");
+//				})
+//				.dataSource(dataSource)
+//				.build();
+//	}
+//
+//	@Bean
+//	public Step step2(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
+//					  JdbcCursorItemReader<TodayRegisteredUserDTO> staticsReader,
+//					  ItemProcessor<TodayRegisteredUserDTO, StaticsDTO> staticsProcessor,
+//					  JdbcBatchItemWriter<StaticsDTO> staticsWriter, JdbcTemplate jdbcTemplate) {
+//		System.out.println("Step2 준비");
+//		return new StepBuilder("step2", jobRepository)
+//				.<TodayRegisteredUserDTO, StaticsDTO>chunk(10)
+//				.reader(staticsReader)
+//				.processor(staticsProcessor)
+//				.writer(staticsWriter)
+//				.transactionManager(transactionManager)
+//				.build();
+//	}
+//
+//	@Bean
+//	public Job staticsInsertJob(JobRepository jobRepository, Step step2) {
+//		System.out.println("staticsInsertJob 실행");
+//		return new JobBuilder("staticsInsertJob", jobRepository)
+//				.start(step2)
+//				.build();
+//	}
 }
