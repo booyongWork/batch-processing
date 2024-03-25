@@ -10,12 +10,15 @@ import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
@@ -31,38 +34,48 @@ import javax.sql.DataSource;
 
 @Configuration
 public class BatchConfiguration {
+	@Autowired
+	private DataSource dataSource;
 	//NOTE. @Bean - 스프링 프레임워크에서 빈(Bean)으로 관리될 객체를 선언하는 데 사용되는 어노테이션
 	// 특정 형식의 파일(여기서는 CSV 파일)을 읽어들이는 빈
 	// reader() 함수에서 csv 파일에서 데이터를 읽어와서 객체안에 넣어놓는다.
 	@Bean
-	public FlatFileItemReader<Person> reader() {
+	public JdbcCursorItemReader<PersonDTO> reader() {
 		System.out.println("reader 실행");
-		return new FlatFileItemReaderBuilder<Person>() // 객체 생성되고 반환
-				.name("personItemReader") //빈의 이름을 "personItemReader"로 설정
-				.resource(new ClassPathResource("sample-data2.csv")) //sample-data.csv"라는 이름의 파일을 Classpath에서 읽음
-				.delimited() // ,를 구분자로 구분된 파일 형식을 가정
-				.delimiter(",")
-				.names("firstName", "lastName", "gender", "married", "age", "address") //CSV 파일의 각 열의 이름을 지정하여 Person 객체와 매핑
-				.targetType(Person.class) // 읽은 데이터를 Person 객체로 변환
-				.build(); //설정한 정보를 바탕으로 FlatFileItemReader 객체를 생성
+		JdbcCursorItemReader<PersonDTO> reader = new JdbcCursorItemReader<>();
+		reader.setDataSource(dataSource);
+		reader.setSql("SELECT first_name, last_name, gender, married, age, address FROM people");
+		reader.setRowMapper(new BeanPropertyRowMapper<>(PersonDTO.class));
+		return reader;
 	}
 
 	// 대문자를 소문자로 치환작업
 	@Bean
-	public PersonItemProcessor processor() {
+	public ItemProcessor<PersonDTO, TodayRegisteredUser> processor() {
 		System.out.println("processor 실행");
-		return new PersonItemProcessor();
+		return new ItemProcessor<PersonDTO, TodayRegisteredUser>() {
+			@Override
+			public TodayRegisteredUser process(final PersonDTO person) {
+				// Person을 TodayRegisteredUser로 변환하는 로직 추가
+//				final String firstName = person.getFirstName().toUpperCase();
+//				final String lastName = person.getLastName().toUpperCase();
+
+				// 새로운 TodayRegisteredUser 객체 생성
+				return new TodayRegisteredUser(person.getFirstName(), person.getLastName(), person.getGender(), person.isMarried(), person.getAge(), person.getAddress());
+			}
+		};
 	}
 
 	//NOTE. JdbcBatchItemWriter - 일반적으로 Spring Batch 작업의 마지막 단계에서 사용되며, 이전 단계에서 처리된 데이터를 최종적으로 데이터베이스에 저장하는 데 활용
 	// Person에 매핑되어 있는 값을 JdbcBatchItemWriter db에 저장
 	@Bean
-	public JdbcBatchItemWriter<Person> writer(DataSource dataSource) {
+	public JdbcBatchItemWriter<TodayRegisteredUser> writer(DataSource dataSource) {
 		System.out.println("writer 실행");
-		return new JdbcBatchItemWriterBuilder<Person>()
-				.sql("INSERT INTO people (first_name, last_name, gender, married, age, address) VALUES (:firstName, :lastName, :gender, :married, :age, :address)")
+		return new JdbcBatchItemWriterBuilder<TodayRegisteredUser>()
+				.sql("INSERT INTO TodayRegisteredUsers (first_name, last_name, gender, married, age, address) " +
+						"VALUES (?, ?, ?, ?, ?, ?)")
+				.itemPreparedStatementSetter(new TodayRegisteredUserPreparedStatementSetter())
 				.dataSource(dataSource)
-				.beanMapped()
 				.build();
 	}
 
@@ -75,15 +88,23 @@ public class BatchConfiguration {
 	// 스텝에서 불러온 파일을 가공하고 insert할꺼라는 걸 설정
 	@Bean
 	public Step step1(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
-					  FlatFileItemReader<Person> reader, PersonItemProcessor processor, JdbcBatchItemWriter<Person> writer) {
-		System.out.println("importUserStep 준비");
+					  JdbcCursorItemReader<PersonDTO> reader, ItemProcessor<PersonDTO, TodayRegisteredUser> processor, JdbcTemplate jdbcTemplate) {
+		System.out.println("Step1 준비");
 		return new StepBuilder("step1", jobRepository)
-				.<Person, Person>chunk(10, transactionManager)// 10개의 레코드씩 처리
+				.<PersonDTO, TodayRegisteredUser>chunk(1) // TodayRegisteredUser로 변환
 				.reader(reader)
-				.processor(processor)
-				.writer(writer)
+				.processor(processor) // Processor에서 Person을 TodayRegisteredUser로 변환
+				.writer(new JdbcBatchItemWriterBuilder<TodayRegisteredUser>()
+						.sql("INSERT INTO TodayRegisteredUsers (first_name, last_name, gender, married, age, address) " +
+								"VALUES (?, ?, ?, ?, ?, ?)")
+						.itemPreparedStatementSetter(new TodayRegisteredUserPreparedStatementSetter()) // 여기를 수정
+						.dataSource(jdbcTemplate.getDataSource())
+						.build())
+				.transactionManager(transactionManager)
 				.build();
 	}
+
+
 
 	// NOTE. JobBuilder -  Spring Batch에서 Job을 생성하는 데 사용되는 빌더 클래스
 	//  이 클래스의 인스턴스를 생성하고 여러 설정 메서드를 사용하여 Job의 속성을 지정한 다음 build() 메서드를 호출하여 Job 객체를 생성
@@ -91,74 +112,12 @@ public class BatchConfiguration {
 
 	//여기서 User를 불러오는 job을 실행
 	@Bean
-	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener) {
-		System.out.println("importUserJob 준비");
+	public Job importUserJob(JobRepository jobRepository, Step step1, JobCompletionNotificationListener listener, Step addressStep) {
+		System.out.println("importUserJob 실행");
 		Job job = new JobBuilder("importUserJob", jobRepository)
 				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
 				.start(step1) // 배치작업 시작
-				.build();
-		return job;
-	}
-
-	//importUserJob 실행도중에
-//	@Bean
-//	public Job importUserJob(JobRepository jobRepository, Step step1, Step staticsStep,
-//							 JobCompletionNotificationListener listener) {
-//		System.out.println("importUserJob 준비");
-//		return new JobBuilder("importUserJob", jobRepository)
-//				.listener(listener) // 배치 작업이 완료되면 여기서 afterJob을 호출해서 원하는 다음 작업 진행
-//				.start(step1) // 배치작업 시작
-//				.next(staticsStep) // importUserJob 실행 이후 staticsStep 실행
-//				.build();
-//	}
-
-	@Bean
-	public FlatFileItemReader<Person> staticsReader() {
-		return new FlatFileItemReaderBuilder<Person>()
-				.name("staticsReader")
-				.resource(new ClassPathResource("sample-data2.csv"))
-				.delimited()
-				.delimiter(",")
-				.names("firstName", "lastName", "gender", "married", "age", "address")
-				.targetType(Person.class)
-				.build();
-	}
-
-	@Bean
-	public StaticstemProcessor staticsProcessor(JdbcTemplate jdbcTemplate) {
-		return new StaticstemProcessor(jdbcTemplate);
-	}
-
-	@Bean
-	public JdbcBatchItemWriter<Statics> staticsWriter(DataSource dataSource) {
-		return new JdbcBatchItemWriterBuilder<Statics>()
-				.itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-				.sql("INSERT INTO statics (job_nm, total_people, male_count, female_count, married_count, unmarried_count, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage)\n" +
-						"VALUES (:jobNm, :totalPeople, :maleCount, :femaleCount, :marriedCount, :unmarriedCount, :teenagePercentage, :twentiesPercentage, :thirtiesPercentage, :fortiesPercentage, :fiftiesPercentage)")
-				.dataSource(dataSource)
-				.build();
-	}
-
-	@Bean
-	public Step staticsStep(JobRepository jobRepository, DataSourceTransactionManager transactionManager,
-							ItemReader<Person> staticsReader, ItemProcessor<Person, Statics> staticsProcessor,
-							ItemWriter<Statics> staticsWriter) {
-		System.out.println("staticsStep 준비");
-		return new StepBuilder("staticsStep", jobRepository)
-				.<Person, Statics>chunk(1,transactionManager)
-				.reader(staticsReader)
-				.processor(staticsProcessor)
-				.writer(staticsWriter)
-				.build();
-	}
-
-	@Bean
-	public Job staticsInsertJob(JobRepository jobRepository, Step staticsStep,
-			JobCompletionNotificationListener listener) {
-		System.out.println("staticsInsertJob 준비");
-		Job job = new JobBuilder("staticsInsertJob", jobRepository)
-				.listener(listener)
-				.start(staticsStep)
+				.next(addressStep)
 				.build();
 		// Job 이름을 JobCompletionNotificationListener에 전달
 		((JobCompletionNotificationListener) listener).setJobName(job.getName());

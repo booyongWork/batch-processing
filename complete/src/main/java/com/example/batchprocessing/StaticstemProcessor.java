@@ -3,7 +3,7 @@ package com.example.batchprocessing;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-public class StaticstemProcessor implements ItemProcessor<Person, Statics> {
+public class StaticstemProcessor implements ItemProcessor<PersonDTO, Statics> {
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -12,7 +12,7 @@ public class StaticstemProcessor implements ItemProcessor<Person, Statics> {
     }
 
     @Override
-    public Statics process(final Person person) {
+    public Statics process(final PersonDTO person) {
 //        System.out.println("process");
         //TODO.Statics 에러 테스트
 //        if (!person.firstName().equals("John")) {
