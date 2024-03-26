@@ -5,6 +5,9 @@ import org.springframework.batch.item.database.ItemPreparedStatementSetter;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class TodayRegisteredUserPreparedStatementSetter implements ItemPreparedStatementSetter<TodayRegisteredUserDTO> {
 
@@ -21,5 +24,9 @@ public class TodayRegisteredUserPreparedStatementSetter implements ItemPreparedS
         // LocalDate를 java.sql.Date로 변환
         Date joinDate = Date.valueOf(todayRegisteredUserDTO.getJoinDate());
         preparedStatement.setDate(8, joinDate);
+
+        LocalDateTime now = LocalDateTime.now();
+        Timestamp timestamp = Timestamp.valueOf(now);
+        preparedStatement.setTimestamp(9, timestamp);
     }
 }

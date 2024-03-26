@@ -6,9 +6,11 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +25,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 //NOTE.
 // ItemReader : 배치데이터를 읽어오는 인터페이스. DB뿐 아니라 File, XML 등 다양한 타입에서 읽어올 수 있다.
@@ -34,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 
 @Configuration
 public class BatchConfiguration {
+
 	@Autowired
 	private DataSource dataSource;
 	//NOTE. @Bean - 스프링 프레임워크에서 빈(Bean)으로 관리될 객체를 선언하는 데 사용되는 어노테이션
@@ -90,8 +95,8 @@ public class BatchConfiguration {
 	public JdbcBatchItemWriter<TodayRegisteredUserDTO> writer(DataSource dataSource) {
 		System.out.println("writer 실행");
 		return new JdbcBatchItemWriterBuilder<TodayRegisteredUserDTO>()
-				.sql("INSERT INTO today_reg_users (first_name, last_name, gender, married, age, address, person_id, join_date) " +
-						"VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+				.sql("INSERT INTO today_reg_users (first_name, last_name, gender, married, age, address, person_id, join_date, work_date) " +
+						"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 				.itemPreparedStatementSetter(new TodayRegisteredUserPreparedStatementSetter())
 				.dataSource(dataSource)
 				.build();
@@ -135,6 +140,69 @@ public class BatchConfiguration {
 //		((JobCompletionNotificationListener) listener).setJobName(job.getName());
 		return job;
 	}
+
+
+	@Bean
+	public Job manualImportTodayUserJob(JobRepository jobRepository, Step step1) {
+		System.out.println("manualImportTodayUserJob 실행");
+		return new JobBuilder("manualImportTodayUserJob", jobRepository)
+				.start(step1) // 배치작업 시작
+				.build();
+	}
+
+	@Bean
+	public ItemReader<Map<String, Object>> addressReader(JdbcTemplate jdbcTemplate) {
+		System.out.println("addressReader 실행");
+		return new JdbcCursorItemReaderBuilder<Map<String, Object>>()
+				.dataSource(dataSource)
+				.sql("SELECT DISTINCT person_id, address FROM today_reg_users")
+				.rowMapper((rs, rowNum) -> {
+					Map<String, Object> addressMap = new HashMap<>();
+					addressMap.put("person_id", rs.getLong("person_id"));
+					addressMap.put("address", rs.getString("address"));
+					return addressMap;
+				})
+				.saveState(false)
+				.build();
+	}
+
+//	@Bean
+//	public ItemProcessor<Map<String, Object>, AddressDTO> addressProcessor() {
+//		System.out.println("addressProcessor 실행");
+//		return item -> {
+//			String fullAddress = (String) item.get("address");
+//			String[] addressParts = fullAddress.split(" "); // 주소를 공백을 기준으로 분리
+//			String city = addressParts[0].trim(); // 첫 번째 요소는 도시명
+//			String state = addressParts[1].trim(); // 두 번째 요소는 시/도명
+//			String street = addressParts[2].trim(); // 세 번째 요소는 거리명
+//			AddressDTO address = new AddressDTO(street, city, state); // 가공된 주소 객체 생성
+//			return address;
+//		};
+//	}
+//
+//	@Bean
+//	public ItemWriter<AddressDTO> addressWriter(JdbcTemplate jdbcTemplate) {
+//		System.out.println("addressWriter 실행");
+//		return addresses -> {
+//			for (AddressDTO address : addresses) {
+//				LocalDateTime currentDateTime = LocalDateTime.now();
+//				Timestamp sqlTimestamp = Timestamp.valueOf(currentDateTime);
+//
+//				jdbcTemplate.update("INSERT INTO address (street, city, state, work_date) VALUES (?, ?, ?, ?)",
+//						address.getStreet(), address.getCity(), address.getState(), sqlTimestamp);
+//			}
+//		};
+//	}
+
+
+
+
+
+
+
+
+
+
 
 //	@Bean
 //	public JdbcCursorItemReader<TodayRegisteredUserDTO> staticsReader() {

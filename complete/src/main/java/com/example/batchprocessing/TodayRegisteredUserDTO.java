@@ -16,6 +16,8 @@ public class TodayRegisteredUserDTO {
     private String address;
     private LocalDate joinDate;
 
+    private LocalDate workDate;
+
     public TodayRegisteredUserDTO() {
     }
 
@@ -28,7 +30,7 @@ public class TodayRegisteredUserDTO {
         this.age = age;
         this.address = address;
         this.joinDate = joinDate;
-
+        this.workDate = workDate;
     }
 
     public long getPersonId() {
@@ -93,5 +95,13 @@ public class TodayRegisteredUserDTO {
 
     public void setJoinDate(LocalDate joinDate) {
         this.joinDate = joinDate;
+    }
+
+    public LocalDate getWorkDate() {
+        return workDate;
+    }
+
+    public void setWorkDate(LocalDate workDate) {
+        this.workDate = workDate;
     }
 }

@@ -10,9 +10,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -133,12 +133,12 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 						double fortiesPercentage = jdbcTemplate.queryForObject(fortiesPercentageQuery, Double.class);
 						double fiftiesPercentage = jdbcTemplate.queryForObject(fiftiesPercentageQuery, Double.class);
 
-						LocalDate currentDate = LocalDate.now();
-						Date sqlDate = Date.valueOf(currentDate);
+						LocalDateTime currentDateTime = LocalDateTime.now();
+						Timestamp sqlTimestamp = Timestamp.valueOf(currentDateTime);
 
 						// statics 테이블에 값 삽입
-						jdbcTemplate.update("INSERT INTO statics (job_nm, total_people, male_count, female_count, married_count, unmarried_count, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage, create_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-								jobName, totalPeople, maleCount, femaleCount, marriedCount, unmarriedCount, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage, sqlDate);
+						jdbcTemplate.update("INSERT INTO statics (job_nm, total_people, male_count, female_count, married_count, unmarried_count, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage, work_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+								jobName, totalPeople, maleCount, femaleCount, marriedCount, unmarriedCount, teenagePercentage, twentiesPercentage, thirtiesPercentage, fortiesPercentage, fiftiesPercentage, sqlTimestamp);
 
 						LocalDateTime endBatchTime = LocalDateTime.now();
 
@@ -173,9 +173,12 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 								// Address 객체 생성
 								Address address = new Address(street, city, state);
 
+								LocalDateTime currentDateTime = LocalDateTime.now();
+								Timestamp sqlTimestamp = Timestamp.valueOf(currentDateTime);
+
 								// Address 객체를 데이터베이스에 삽입
-								jdbcTemplate.update("INSERT INTO address (street, city, state, person_Id) VALUES (?, ?, ?, ?)",
-										address.street(), address.city(), address.state(), person_Id);
+								jdbcTemplate.update("INSERT INTO address (street, city, state, person_Id, work_date) VALUES (?, ?, ?, ?, ?)",
+										address.street(), address.city(), address.state(), person_Id, sqlTimestamp);
 							}
 						}
 
@@ -204,8 +207,12 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 								} else {
 									ageGroup = "Sixties";
 								}
+
+								LocalDateTime currentDateTime = LocalDateTime.now();
+								Timestamp sqlTimestamp = Timestamp.valueOf(currentDateTime);
+
 								// age 테이블에 해당 정보 삽입
-								jdbcTemplate.update("INSERT INTO age (person_id, age, ageGroup) VALUES (?, ?, ?)", personId, age, ageGroup);
+								jdbcTemplate.update("INSERT INTO age (person_id, age, ageGroup, work_date) VALUES (?, ?, ?, ?)", personId, age, ageGroup, sqlTimestamp);
 
 							}
 						}
